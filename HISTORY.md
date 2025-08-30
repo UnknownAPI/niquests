@@ -1,6 +1,53 @@
 Release History
 ===============
 
+3.15.2 (2025-08-16)
+-------------------
+
+**Fixed**
+- The return type of `CaseInsensitiveDict.items()` could be a `list` instead of an expected `tuple`. (#276)
+- Omitting hooks (keys) in `Session.hooks` dict causing an error at merge with request specific hooks.
+- CRL cache not persisted when pickling `Session`.
+
+3.15.1 (2025-08-13)
+-------------------
+
+**Changed**
+- Disabled OCSP and CRL signature check when **either** the target site is located in a private network **OR** at least one proxy is used.
+  See #274 for the rationale behind it.
+
+**Fixed**
+- Using Happy Eyeballs algorithm in async could trigger a warning about OCSP/CRL check in strict mode while no error really occurred.
+  This was due to async cancellation propagated to tasks that did not finish through after getting a valid connection usable.
+
+3.15.0 (2025-08-11)
+-------------------
+
+**Security**
+- Prevent MITM attack with OCSP. Previous to that version we did not check the signature against the issuer public key.
+  While this sort of attack are indubitably rare, we prefer encouraging users to upgrade as soon as possible.
+
+**Added**
+- Support for CRLs in addition to our OCSP solution when the peer certificate **does not** support OCSP.
+  It acts as a fallback method to check for the revocation status. This comes _(in response to)_ shortly after the removal
+  of Let's Encrypt OCSP responder. We are investigating if we should implement a boolean toggle to let the user
+  prefer CRL instead of OCSP by default in a next version. Give us your ideas and feedbacks before!
+- Explicit support for Python 3.14
+
+**Changed**
+- `wassima` upperbound to version 2 that includes various QoL improvements and stopped relying on Rust.
+  The package is now pure Python and ships with the CCADB store as a fallback.
+- `urllib3-future` lower bound version is raised to 2.13.903 for newest requirements.
+- 4 failures (e.g. timeout) in a row with OCSP or CRL will now result in silently disabling the revocation check when strict mode is disabled.
+
+**Fixed**
+- OCSP caching was not used when a redirection (3XX) occurred and following_redirect is enabled.
+
+**Removed**
+- PicoTLS module attached to our OCSP extension in favor of solely doing AIA fetching for the intermediate.
+  The module was error-prone _(silently failing)_ and often did not go through his main goal of getting the intermediate. Now that
+  we have a proper signature verification algorithm available we can enable AIA fetching by default.
+
 3.14.1 (2025-04-19)
 -------------------
 

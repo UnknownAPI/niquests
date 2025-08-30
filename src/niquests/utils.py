@@ -8,6 +8,7 @@ that are also useful for external consumption.
 
 from __future__ import annotations
 
+import asyncio
 import codecs
 import contextlib
 import io
@@ -1156,6 +1157,24 @@ def is_ocsp_capable(conn_info: ConnectionInfo | None) -> bool:
     return True
 
 
+def is_crl_capable(conn_info: ConnectionInfo | None) -> bool:
+    if conn_info is None or conn_info.certificate_der is None or conn_info.certificate_dict is None:
+        return False
+
+    endpoints: list[str] = [  # type: ignore
+        # exclude non-HTTP endpoint. like ldap.
+        ep  # type: ignore
+        for ep in list(conn_info.certificate_dict.get("crlDistributionPoints", []))  # type: ignore
+        if ep.startswith("http://")  # type: ignore
+    ]
+
+    # well... not all issued certificate have a CRL distribution endpoint
+    if not endpoints:
+        return False
+
+    return True
+
+
 def wrap_extension_for_http(
     extension: type[ExtensionFromHTTP],
 ) -> type[ExtensionFromHTTP]:
@@ -1340,3 +1359,14 @@ def async_wrap_extension_for_http(
                     raise
 
     return _AsyncWrappedExtensionFromHTTP
+
+
+def is_cancelled_error_root_cause(exc: BaseException) -> bool:
+    seen = set()
+    cur: BaseException | None = exc
+    while cur and cur not in seen:
+        if isinstance(cur, asyncio.CancelledError):
+            return True
+        seen.add(cur)
+        cur = cur.__cause__ or cur.__context__
+    return False
