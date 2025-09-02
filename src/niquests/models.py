@@ -136,7 +136,7 @@ DEFAULT_REDIRECT_LIMIT = 30
 CONTENT_CHUNK_SIZE = 10 * 1024
 ITER_CHUNK_SIZE = -1
 
-T = typing.TypeVar("T")
+_ResponseModelT = typing.TypeVar("T")
 
 
 class TransferProgress:
@@ -159,7 +159,7 @@ class TransferProgress:
         return f"<Progress {self.total} bytes sent ({'in progress' if self.is_completed is False else 'completed'})>"
 
 
-class Request(typing.Generic[T]):
+class Request(typing.Generic[_ResponseModelT]):
     """A user-created :class:`Request <Request>` object.
 
     Used to prepare a :class:`PreparedRequest <PreparedRequest>`, which is sent to the server.
@@ -203,7 +203,7 @@ class Request(typing.Generic[T]):
         model: typing.Any | None = None,
         base_url: str | None = None,
         model_adapter: ModelAdapter | None = None,
-        response_model_type: type[T] | None = None,
+        response_model_type: type[_ResponseModelT] | None = None,
     ):
         # Default empty dicts for dict params.
         data = [] if data is None else data
@@ -229,7 +229,7 @@ class Request(typing.Generic[T]):
         self.middlewares = middlewares or []
         self.model = model
         self.model_adapter = model_adapter
-        self.response_model_type: type[T] | None = response_model_type
+        self.response_model_type: type[_ResponseModelT] | None = response_model_type
 
     @property
     def oheaders(self) -> Headers:
@@ -287,7 +287,7 @@ class Request(typing.Generic[T]):
         return p
 
 
-class PreparedRequest(typing.Generic[T]):
+class PreparedRequest(typing.Generic[_ResponseModelT]):
     """The fully mutable :class:`PreparedRequest <PreparedRequest>` object,
     containing the exact bytes that will be sent to the server.
 
@@ -337,7 +337,7 @@ class PreparedRequest(typing.Generic[T]):
         #: internal usage only. warn us that we should re-compute content-length and await auth() outside of PreparedRequest.
         self._asynchronous_auth: bool = False
         self.model_adapter: ModelAdapter | None = None
-        self.response_model_type: type[T] | None = None
+        self.response_model_type: type[_ResponseModelT] | None = None
 
     @property
     def oheaders(self) -> Headers:
@@ -359,7 +359,7 @@ class PreparedRequest(typing.Generic[T]):
         base_url: str | None = None,
         model: typing.Any | None = None,
         model_adapter: ModelAdapter | None = None,
-        response_model_type: type[T] | None = None,
+        response_model_type: type[_ResponseModelT] | None = None,
     ) -> None:
         """Prepares the entire request with the given parameters."""
         self.model_adapter = model_adapter
@@ -912,7 +912,7 @@ class PreparedRequest(typing.Generic[T]):
         return body, content_type
 
 
-class Response(typing.Generic[T]):
+class Response(typing.Generic[_ResponseModelT]):
     """The :class:`Response <Response>` object, which contains a
     server's response to an HTTP request.
     """
@@ -1567,7 +1567,7 @@ class Response(typing.Generic[T]):
             # This aliases json.JSONDecodeError and simplejson.JSONDecodeError
             raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
 
-    def model(self) -> T:
+    def model(self) -> _ResponseModelT:
         return self.request.model_adapter.from_data(self.content, self.request.response_model_type)
 
     @property
@@ -2017,7 +2017,7 @@ class AsyncResponse(Response):
             raise RequestsJSONDecodeError(e.msg, e.doc, e.pos)
 
 
-    async def model(self) -> T:
+    async def model(self) -> _ResponseModelT:
         return self.request.model_adapter.from_data(await self.content, self.request.response_model_type)
 
     async def close(self) -> None:  # type: ignore[override]
